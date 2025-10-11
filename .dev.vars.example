@@ -1,0 +1,8 @@
+# Local Development Environment Variables
+# Copy this file to .dev.vars and fill in your actual values
+# .dev.vars is gitignored and will not be committed
+
+# Unsplash API Access Key
+# Get this from https://unsplash.com/oauth/applications
+UNSPLASH_ACCESS_KEY=your_unsplash_access_key_here
+

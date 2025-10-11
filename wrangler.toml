@@ -1,0 +1,20 @@
+name = "unsplash-worker"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# R2 bucket binding for storing image data
+[[r2_buckets]]
+binding = "UNSPLASH_CACHE"
+bucket_name = "unsplash-cache"
+
+# KV namespace binding for storing cache metadata
+[[kv_namespaces]]
+binding = "UNSPLASH_CACHE_METADATA"
+id = "86c621d1e7e445df99cae2dfe161d777"  # Replace with actual namespace ID after creation
+
+# Note: Set the UNSPLASH_ACCESS_KEY secret using:
+# wrangler secret put UNSPLASH_ACCESS_KEY
+
+[observability.logs]
+enabled = true
+
