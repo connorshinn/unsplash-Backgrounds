@@ -148,30 +148,12 @@ flowchart TD
     ServeFirst --> PopulateCache[Background Process: <br/>Upload images 2-11 from Unsplash API call to R2 and create new entry in KV with relevant metadata]
     PopulateCache --> End
     
-    %% Scheduled Cleanup
-    CronTrigger([Cron Trigger<br/>Daily at 2 AM UTC]) --> StartCleanup[Start Cache Cleanup]
-    StartCleanup --> ListKeys[List All KV Keys]
-    ListKeys --> IterateKeys[For Each Key]
-    IterateKeys --> GetMeta[Get Metadata]
-    GetMeta --> CheckAge{last_accessed > 2 weeks old?}
-    CheckAge -->|Yes| DeleteR2[Delete All R2 Objects<br/>for this cache key]
-    DeleteR2 --> DeleteKV[Delete KV Entry]
-    DeleteKV --> NextKey{More Keys?}
-    CheckAge -->|No| HasTimestamp{Has last_accessed?}
-    HasTimestamp -->|No| AddTimestamp[Add Timestamp<br/>for Grace Period]
-    HasTimestamp -->|Yes| NextKey
-    AddTimestamp --> NextKey
-    NextKey -->|Yes| IterateKeys
-    NextKey -->|No| CleanupEnd([Cleanup Complete<br/>Log Statistics])
-    
-    style CacheHit fill:#90EE90
-    style CacheMiss fill:#FFB6C1
-    style ServeImage fill:#87CEEB
-    style ServeFirst fill:#87CEEB
-    style RefreshCache fill:#DDA0DD
-    style PopulateCache fill:#DDA0DD
-    style CronTrigger fill:#FFD700
-    style StartCleanup fill:#FFD700
+    style CacheHit fill:#90EE90,color:#000000
+    style CacheMiss fill:#FFB6C1,color:#000000
+    style ServeImage fill:#87CEEB,color:#000000
+    style ServeFirst fill:#87CEEB,color:#000000
+    style RefreshCache fill:#DDA0DD,color:#000000
+    style PopulateCache fill:#DDA0DD,color:#000000
 ```
 
 **Caching:**

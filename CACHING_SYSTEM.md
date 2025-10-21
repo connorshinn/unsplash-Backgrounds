@@ -57,7 +57,7 @@ flowchart TD
     NextKey -->|Yes| IterateKeys
     NextKey -->|No| CleanupEnd([Cleanup Complete<br/>Log Statistics])
     
-    style CacheHit fill:#90EE90
+    style CacheHit fill:#90EE90,color:#000000
     style CacheMiss fill:#FFB6C1
     style ServeImage fill:#87CEEB
     style ServeFirst fill:#87CEEB
