@@ -15,7 +15,7 @@ export default {
       // Parse request URL and validate parameters
       const url = new URL(request.url);
       const params = extractQueryParams(url);
-      
+
       // Validate parameter combinations
       const validationError = validateParams(params);
       if (validationError) {
@@ -39,6 +39,12 @@ export default {
       console.error('Worker error:', error);
       return new Response('Internal Server Error', { status: 500 });
     }
+  },
+
+  async scheduled(event, env, ctx) {
+    // Run cache cleanup on scheduled cron trigger
+    console.log('Scheduled cache cleanup triggered at:', new Date(event.scheduledTime).toISOString());
+    ctx.waitUntil(cleanupOldCache(env));
   }
 };
 
@@ -157,7 +163,7 @@ async function handleCacheHit(env, ctx, metadata, params) {
     console.log('================');
 
     // Update metadata in background
-    ctx.waitUntil(updateCacheMetadata(env, ctx, metadata));
+    ctx.waitUntil(updateCacheMetadata(env, metadata));
 
     // Return image with metadata headers (visible in browser dev tools)
     return new Response(r2Object.body, {
@@ -188,17 +194,20 @@ async function handleCacheHit(env, ctx, metadata, params) {
 /**
  * Update cache metadata after serving an image
  */
-async function updateCacheMetadata(env, ctx, metadata) {
+async function updateCacheMetadata(env, metadata) {
   // Increment next_index (wrap to 0 after 9)
   metadata.next_index = (metadata.next_index + 1) % 10;
   metadata.served_count += 1;
+
+  // Update last accessed timestamp
+  metadata.last_accessed = Date.now();
 
   // Save updated metadata
   await env.UNSPLASH_CACHE_METADATA.put(metadata.cache_key, JSON.stringify(metadata));
 
   // Check if cache refresh is needed (every 8 images)
   if (metadata.served_count % 8 === 0) {
-    ctx.waitUntil(refreshCache(env, metadata));
+    await refreshCache(env, metadata);
   }
 }
 
@@ -461,6 +470,7 @@ async function populateCache(env, cacheKey, photos, width = null, height = null)
     total_images: images.length,
     next_index: 0,
     served_count: 0,
+    last_accessed: Date.now(),
     images: images
   };
 
@@ -623,6 +633,89 @@ async function triggerDownloadTracking(env, photo) {
     }
   } catch (error) {
     console.error('Download tracking error:', error);
+  }
+}
+
+/**
+ * Clean up old cache entries that haven't been accessed in more than 2 weeks
+ */
+async function cleanupOldCache(env) {
+  const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000; // 2 weeks in milliseconds
+  const now = Date.now();
+
+  let totalKeysChecked = 0;
+  let totalKeysDeleted = 0;
+  let totalR2ObjectsDeleted = 0;
+
+  console.log('=== CACHE CLEANUP STARTED ===');
+  console.log('Checking for cache entries older than 2 weeks...');
+
+  try {
+    // List all keys in KV namespace
+    let cursor = undefined;
+    let hasMore = true;
+
+    while (hasMore) {
+      const listResult = await env.UNSPLASH_CACHE_METADATA.list({ cursor });
+
+      for (const key of listResult.keys) {
+        totalKeysChecked++;
+
+        try {
+          // Get metadata for this key
+          const metadata = await env.UNSPLASH_CACHE_METADATA.get(key.name, 'json');
+
+          if (!metadata) {
+            console.log(`Skipping key ${key.name} - no metadata found`);
+            continue;
+          }
+
+          // Check if last_accessed exists and is older than 2 weeks
+          if (metadata.last_accessed) {
+            const age = now - metadata.last_accessed;
+
+            if (age > TWO_WEEKS_MS) {
+              console.log(`Deleting old cache entry: ${key.name} (last accessed ${Math.floor(age / (24 * 60 * 60 * 1000))} days ago)`);
+
+              // Delete all R2 objects associated with this cache key
+              if (metadata.images && Array.isArray(metadata.images)) {
+                for (const image of metadata.images) {
+                  try {
+                    await env.UNSPLASH_CACHE.delete(image.r2_key);
+                    totalR2ObjectsDeleted++;
+                  } catch (error) {
+                    console.error(`Error deleting R2 object ${image.r2_key}:`, error);
+                  }
+                }
+              }
+
+              // Delete the KV entry
+              await env.UNSPLASH_CACHE_METADATA.delete(key.name);
+              totalKeysDeleted++;
+            }
+          } else {
+            // If no last_accessed timestamp, this is an old entry from before we added timestamps
+            // We can either delete it or add a timestamp. Let's add a timestamp to give it a grace period
+            console.log(`Adding last_accessed timestamp to legacy entry: ${key.name}`);
+            metadata.last_accessed = now;
+            await env.UNSPLASH_CACHE_METADATA.put(key.name, JSON.stringify(metadata));
+          }
+        } catch (error) {
+          console.error(`Error processing key ${key.name}:`, error);
+        }
+      }
+
+      hasMore = !listResult.list_complete;
+      cursor = listResult.cursor;
+    }
+
+    console.log('=== CACHE CLEANUP COMPLETED ===');
+    console.log(`Total keys checked: ${totalKeysChecked}`);
+    console.log(`Total keys deleted: ${totalKeysDeleted}`);
+    console.log(`Total R2 objects deleted: ${totalR2ObjectsDeleted}`);
+    console.log('================================');
+  } catch (error) {
+    console.error('Cache cleanup error:', error);
   }
 }
 

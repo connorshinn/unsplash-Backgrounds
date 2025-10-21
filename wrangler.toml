@@ -12,8 +12,10 @@ bucket_name = "unsplash-cache"
 binding = "UNSPLASH_CACHE_METADATA"
 id = "86c621d1e7e445df99cae2dfe161d777"  # Replace with actual namespace ID after creation
 
-# Note: Set the UNSPLASH_ACCESS_KEY secret using:
-# wrangler secret put UNSPLASH_ACCESS_KEY
+# Cron trigger for automatic cache cleanup
+# Runs daily at 2:00 AM UTC
+[triggers]
+crons = ["0 2 * * *"]
 
 [observability.logs]
 enabled = true
