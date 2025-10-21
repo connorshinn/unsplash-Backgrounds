@@ -1,4 +1,4 @@
-name = "unsplash-worker"
+name = "tinyauth-backgrounds"
 main = "src/index.js"
 compatibility_date = "2024-01-01"
 
