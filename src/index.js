@@ -400,7 +400,6 @@ function constructOptimizedUrl(rawUrl, width, height) {
   url.searchParams.set('auto', 'format');
   url.searchParams.set('q', '65');
   url.searchParams.set('cs', 'origin');
-  url.searchParams.set('fit', 'clamp');
   url.searchParams.set('dpr', '3');
 
   // Add dimensions if provided
