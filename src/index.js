@@ -289,25 +289,25 @@ async function handleCacheMiss(env, ctx, cacheKey, params) {
  * The Unsplash /photos/random endpoint requires topic IDs, not slugs
  */
 const TOPIC_SLUG_TO_ID = {
-  'wallpapers': 'bo8jQKTaE0Y',
-  'nature': '6sMVjTLSkeQ',
-  'people': 'towJZFskpGg',
-  'architecture': 'rnSKDHwwYUk',
-  'current-events': 'hmenvQhUmxM',
-  'business-work': 'aeu6rL-j6ew',
-  'fashion-beauty': 'S4MKLAsBB74',
-  'film': 'xjPR4hlkBGA',
-  'food-drink': 'xHxYTMHLgOc',
-  'health-wellness': '_8zFHuhRhyo',
-  'spirituality': '_hb-dl4Q-4U',
-  'travel': 'Fzo3zuOHN6w',
-  'animals': 'Jpg6Kidl-Hk',
-  'street-photography': 'xHxYTMHLgOc',
-  'experimental': 'qPYsDzvJOYc',
-  'textures-patterns': 'iUIsnVtjB0Y',
-  'athletics': 'Bn-DjrcBrwo',
-  'arts-culture': 'bDo48cUhwnY',
+  '3d': 'whIY33yKE84',
   '3d-renders': 'CDwuwXJAbEw',
+  'animals': 'Jpg6Kidl-Hk',
+  'architecture-interior': 'M8jVbLbTRws',
+  'experimental': 'qPYsDzvJOYc',
+  'fashion-beauty': 'S4MKLAsBB74',
+  'film': 'hmenvQhUmxM',
+  'flat': 'pIF7l5_hgxg',
+  'hand-drawn': 'tthdwfNPCcw',
+  'icons': 'FkTvWj0W5bo',
+  'illustration-wallpapers': 'If65AuNOOxQ',
+  'line-art': 'rNbj3NBAY_w',
+  'nature': '6sMVjTLSkeQ',
+  'patterns': 'upmleWZC83Y',
+  'people': 'towJZFskpGg',
+  'street-photography': 'xHxYTMHLgOc',
+  'textures-patterns': 'iUIsnVtjB0Y',
+  'travel': 'Fzo3zuOHN6w',
+  'wallpapers': 'bo8jQKTaE0Y'
 };
 
 /**

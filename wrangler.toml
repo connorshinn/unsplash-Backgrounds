@@ -1,6 +1,6 @@
 name = "tinyauth-backgrounds"
 main = "src/index.js"
-compatibility_date = "2024-01-01"
+compatibility_date = "2025-08-15"
 
 # R2 bucket binding for storing image data
 [[r2_buckets]]
@@ -19,4 +19,3 @@ crons = ["0 2 * * *"]
 
 [observability.logs]
 enabled = true
-
