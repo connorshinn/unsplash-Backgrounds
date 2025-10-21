@@ -1,0 +1,23 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cloudflare/wrangler2/main/schemas/config-schema.json",
+  "name": "unsplash-worker",
+  "main": "src/index.js",
+  "compatibility_date": "2024-01-01",
+  "r2_buckets": [
+    {
+      "binding": "UNSPLASH_CACHE",
+      "bucket_name": "unsplash-cache"
+    }
+  ],
+  "kv_namespaces": [
+    {
+      "binding": "UNSPLASH_CACHE_METADATA"
+    }
+  ],
+  "observability": {
+    "logs": {
+      "enabled": true
+    }
+  }
+}
+
