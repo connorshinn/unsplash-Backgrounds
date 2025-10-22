@@ -172,13 +172,10 @@ async function handleCacheHit(env, ctx, metadata, params) {
         'Content-Type': imageInfo.content_type,
         'X-Cache-Status': 'HIT',
         'X-Unsplash-Photographer': imageInfo.photographer,
-        'X-Image-Width': dimensions.width || 'auto',
-        'X-Image-Height': dimensions.height || 'auto',
+        'X-Unsplash-Parameters': category || 'random',
+        'X-Image-Dimensions': `${dimensions.width}x${dimensions.height}` || 'auto',
         'X-Image-Source-URL': `https://unsplash.com/photos/${imageInfo.photo_id}`,
-        'X-Image-File-Size': fileSize.toString(),
-        'X-Image-File-Size-KB': fileSizeKB,
-        'X-Image-File-Size-MB': fileSizeMB,
-        'X-Unsplash-Category': category || 'random',
+        'X-Image-File-Size': `${fileSizeMB} MB`,
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
@@ -251,11 +248,9 @@ async function handleCacheMiss(env, ctx, cacheKey, params) {
         'Location': optimizedUrl,
         'X-Cache-Status': 'MISS',
         'X-Unsplash-Photographer': firstPhoto.user.name,
-        'X-Image-Width': params.width || 'auto',
-        'X-Image-Height': params.height || 'auto',
+        'X-Unsplash-Parameters': category || 'random',
+        'X-Image-Dimensions': `${params.width}x${params.height}` || 'auto',
         'X-Image-Source-URL': `https://unsplash.com/photos/${firstPhoto.id}`,
-        'X-Image-File-Size': 'unknown',
-        'X-Unsplash-Category': category || 'random',
         'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         'Pragma': 'no-cache',
         'Expires': '0'
@@ -264,11 +259,9 @@ async function handleCacheMiss(env, ctx, cacheKey, params) {
   } catch (error) {
     console.error('Cache miss error:', error);
 
-    // Provide more helpful error messages
     if (error.message.includes('forbidden') || error.message.includes('403')) {
       return new Response(
-        'Access forbidden. Your Unsplash API key may be a Demo key with limited access. ' +
-        'Try using ?query=wallpaper instead of ?topics=wallpapers, or apply for Production API access at https://unsplash.com/oauth/applications',
+        'Access forbidden. Check status of Unsplash API key',
         { status: 403 }
       );
     }
@@ -693,8 +686,7 @@ async function cleanupOldCache(env) {
               totalKeysDeleted++;
             }
           } else {
-            // If no last_accessed timestamp, this is an old entry from before we added timestamps
-            // We can either delete it or add a timestamp. Let's add a timestamp to give it a grace period
+            // If no last_accessed timestamp, this is an old entry from before we added timestamps. Timestamp added.
             console.log(`Adding last_accessed timestamp to legacy entry: ${key.name}`);
             metadata.last_accessed = now;
             await env.UNSPLASH_CACHE_METADATA.put(key.name, JSON.stringify(metadata));
