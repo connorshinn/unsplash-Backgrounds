@@ -1,4 +1,4 @@
-# RotateSplash
+# Tinyauth Wallpaper Randomizer
 ![](/Screenshot.png)
 Image service built on Cloudflare Workers that delivers rotating Unsplash photos. Features include:
 
