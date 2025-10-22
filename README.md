@@ -1,4 +1,4 @@
-# Rotating Unsplash Images Cloudflare Worker
+# RotateSplash
 ![](/Screenshot.png)
 Image service built on Cloudflare Workers that delivers rotating Unsplash photos. Features include:
 
