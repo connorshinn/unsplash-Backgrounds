@@ -175,79 +175,61 @@ The initial iteration of this tool called the Unsplash API directly on every req
 
 ### Cache Diagram
 A more detailed diagram of the caching system is provided below. 
-
-<details>
-
-<summary>Viewed Detailed Cache Diagram</summary>
 ```mermaid
-flowchart TD
-    Start[HTTP Request] --> CacheCheck[Check For Existing Cache in KV]
-    CacheCheck --> CacheHit[KV Cache Exists]
-    CacheCheck --> CacheMiss[No KV Cache Exists]
-
-    %% Cache Hit Path
-    CacheHit --> FetchR2[Get Current Index KV Metadata & Fetch Next Image from R2]
-    FetchR2 -->|Image Exists in R2| ServeImage[Serve Image from R2]
-    FetchR2 -->|Image Missing in R2| CacheMiss
-    ServeImage --> UpdateMeta[Update KV Metadata to reflect successful serve]
-    subgraph "`**Background Update of Existing Cache**`"
-    UpdateMeta --> CheckRefresh[Check if New Images Are Needed in R2 Storage]
-    CheckRefresh -->|8+ of 10 total cached images served| RefreshCache[Fetch 8 new images from Unsplash, replace 8 oldest images in R2, and update KV metadata]
-    CheckRefresh -->|<7 of 10 total cached images served| NoActionRequired[No Action Required]
-    end
-
-    
-    %% Cache Miss Path
-    CacheMiss --> FetchUnsplash[Fetch 11 Images from Unsplash API]
-    FetchUnsplash -->|API Error| ErrorResponse[Return Error Response]
-    FetchUnsplash -->|API Success| ServeFirst[Serve First Image from Unsplash API Results]
-    ServeFirst --> GenerateNewCache[Setup New Cache] 
-    subgraph "`**Background Creation of New Cache**`"
-    GenerateNewCache --> PopulateNewKVCache[Create new entry in KV with relevant metadata]
-    GenerateNewCache --> PopulateR2[Upload images 2-11 from Unsplash API call to R2]
-    end
-
-    style CacheHit fill:#90EE90,color:#000000
-    style CacheMiss fill:#FFB6C1,color:#000000
-    style ServeImage fill:#87CEEB,color:#000000
-    style ServeFirst fill:#87CEEB,color:#000000
-    style RefreshCache fill:#DDA0DD,color:#000000
+flowchart TD;
+    Start[HTTP Request] --> CacheCheck[Check For Existing Cache in KV];
+    CacheCheck --> CacheHit[KV Cache Exists];
+    CacheCheck --> CacheMiss[No KV Cache Exists];
+    %% Cache Hit Path;
+    CacheHit --> FetchR2[Get Current Index KV Metadata & Fetch Next Image from R2];
+    FetchR2 -->|Image Exists in R2| ServeImage[Serve Image from R2];
+    FetchR2 -->|Image Missing in R2| CacheMiss;
+    ServeImage --> UpdateMeta[Update KV Metadata to reflect successful serve];
+    subgraph "**Background Update of Existing Cache**";
+    UpdateMeta --> CheckRefresh[Check if New Images Are Needed in R2 Storage];
+    CheckRefresh -->|8+ of 10 total cached images served| RefreshCache[Fetch 8 new images from Unsplash, replace 8 oldest images in R2, and update KV metadata];
+    CheckRefresh -->|<7 of 10 total cached images served| NoActionRequired[No Action Required];
+    end;
+    %% Cache Miss Path;
+    CacheMiss --> FetchUnsplash[Fetch 11 Images from Unsplash API];
+    FetchUnsplash -->|API Error| ErrorResponse[Return Error Response];
+    FetchUnsplash -->|API Success| ServeFirst[Serve First Image from Unsplash API Results];
+    ServeFirst --> GenerateNewCache[Setup New Cache] ;
+    subgraph "**Background Creation of New Cache**";
+    GenerateNewCache --> PopulateNewKVCache[Create new entry in KV with relevant metadata];
+    GenerateNewCache --> PopulateR2[Upload images 2-11 from Unsplash API call to R2];
+    end;
+    style CacheHit fill:#90EE90,color:#000000;
+    style CacheMiss fill:#FFB6C1,color:#000000;
+    style ServeImage fill:#87CEEB,color:#000000;
+    style ServeFirst fill:#87CEEB,color:#000000;
+    style RefreshCache fill:#DDA0DD,color:#000000;
     style GenerateNewCache fill:#DDA0DD,color:#000000  
 ```
-</details>
+
 
 ### Cache Cleanup
 * To avoid unbounded storage, a cron job is setup to run daily at 2:00 AM UTC to clean up old cache entries. 
 * The worker will iterate through each key in the KV namespace and check the `last_accessed` timestamp. Any keys that have not been accessed in more than 2 weeks are deleted from the KV namespace, and their corresponding images are deleted from the R2 bucket. 
-
-<details>
-
-<summary>View Cron Job Workflow</summary>
 ```mermaid
-%%{ init: { 'flowchart': { 'curve': 'monotoneX' } } }%%
-flowchart LR
-    %% Scheduled Cleanup
-    CronTrigger[Cron Trigger<br/>Daily at 2 AM UTC]
-    CronTrigger --> ListKeys[List All KV Keys & Metadata]
-    ListKeys --> IterateKeys
-    IterateKeys@{ shape: procs, label: "Check Date When Each Key Was Last Used"} -->|Last Used Date <2 Weeks Ago|NoAction
-    IterateKeys@{ shape: procs, label: "Check Date When Each Key Was Last Used"} -->|Last Used Date >2 Weeks Ago|DeleteR2[Delete All R2 Objects<br/>for Cache Key]
-    DeleteR2 --> DeleteKV[Delete KV Entry]
-    DeleteKV --> |Next Key| IterateKeys
-    NoAction -->|Next Key| IterateKeys
+flowchart LR;
+    %% Scheduled Cleanup;
+    CronTrigger[Cron Trigger<br/>Daily at 2 AM UTC];
+    CronTrigger --> ListKeys[List All KV Keys & Metadata];
+    ListKeys --> IterateKeys;
+    IterateKeys@{ shape: procs, label: "Check Date When Each Key Was Last Used"} -->|Last Used Date <2 Weeks Ago|NoAction;
+    IterateKeys@{ shape: procs, label: "Check Date When Each Key Was Last Used"} -->|Last Used Date >2 Weeks Ago|DeleteR2[Delete All R2 Objects<br/>for Cache Key];
+    DeleteR2 --> DeleteKV[Delete KV Entry];
+    DeleteKV -.-> |Next Key| IterateKeys;
+    NoAction -.->|Next Key| IterateKeys;
 
-    style IterateKeys fill:#FFE66D,color:#000000
-    style DeleteR2 fill:#FFB6C1,color:#000000
+    style IterateKeys fill:#FFE66D,color:#000000;
+    style DeleteR2 fill:#FFB6C1,color:#000000;
     style DeleteKV fill:#FFB6C1,color:#000000
 ```
 
-</details>
 
 ## Attribution
 
 * This worker uses the [Unsplash API](https://unsplash.com/developers). Photographer attribution is automatically passed as a header with each request to comply with [Unsplash API Guidelines](https://help.unsplash.com/en/articles/2511245-unsplash-api-guidelines) (see `X-Unsplash-Photographer` header). 
 * Many thanks to [Tinyauth](https://github.com/steveiliop56/tinyauth) for the inspiration and use case!
-
-## License
-
-MIT License
