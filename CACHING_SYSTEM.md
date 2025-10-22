@@ -16,56 +16,57 @@ The caching system uses Cloudflare KV (Key-Value store) for metadata and R2 (obj
 ## Caching Flow Diagram
 
 ```mermaid
+%%{ init: { 'flowchart': { 'curve': 'monotoneX' } } }%%
+
 flowchart TD
-    Start([HTTP Request]) --> Validate[Validate Bindings & Parameters]
-    Validate --> GenKey[Generate Cache Key from Parameters]
-    GenKey --> CheckKV{Check KV for<br/>Existing Cache}
-    
+    Start[HTTP Request] --> CacheCheck[Check For Existing Cache in KV]
+    CacheCheck --> CacheHit[KV Cache Exists]
+    CacheCheck --> CacheMiss[No KV Cache Exists]
+
     %% Cache Hit Path
-    CheckKV -->|KV Cache Exists| CacheHit[Cache Hit]
-    CacheHit --> GetIndex[Get Current Index from Metadata]
-    GetIndex --> FetchR2[Fetch Next Image from R2]
-    FetchR2 -->|Image Exists in R2| ServeImage[Return Image from R2]
+    CacheHit --> FetchR2[Get Current Index KV Metadata & Fetch Next Image from R2]
+    FetchR2 -->|Image Exists in R2| ServeImage[Serve Image from R2]
     FetchR2 -->|Image Missing in R2| CacheMiss
-    ServeImage --> UpdateMeta[Update KV Metadata to reflect image served - increment index, update last_accessed, increment served_count]
-    UpdateMeta --> CheckRefresh{Check if New Images Are Needed in R2 Storage}
-    CheckRefresh -->|8+ of 10 total cached images served| RefreshCache[Background Process: <br/>Fetch 8 new images from Unsplash, replace 8 oldest images in R2, and update KV metadata]
-    CheckRefresh -->|<7 of 10 total cached images served| NoActionRequired(No Action Required)
+    ServeImage --> UpdateMeta[Update KV Metadata to reflect successful serve]
+    subgraph "`**Background Update of Existing Cache**`"
+    UpdateMeta --> CheckRefresh[Check if New Images Are Needed in R2 Storage]
+    CheckRefresh -->|8+ of 10 total cached images served| RefreshCache[Fetch 8 new images from Unsplash, replace 8 oldest images in R2, and update KV metadata]
+    CheckRefresh -->|<7 of 10 total cached images served| NoActionRequired[No Action Required]
+    end
 
     
     %% Cache Miss Path
-    CheckKV -->|Not Found| CacheMiss[Cache Miss]
     CacheMiss --> FetchUnsplash[Fetch 11 Images from Unsplash API]
-    FetchUnsplash -->|API Error| ErrorResponse([Return Error Response])
+    FetchUnsplash -->|API Error| ErrorResponse[Return Error Response]
     FetchUnsplash -->|API Success| ServeFirst[Serve First Image from Unsplash API Results]
-    ServeFirst --> PopulateCache[Background Process: <br/>Upload images 2-11 from Unsplash API call to R2 and create new entry in KV with relevant metadata]
-    PopulateCache --> End
-    
-    %% Scheduled Cleanup
-    CronTrigger([Cron Trigger<br/>Daily at 2 AM UTC]) --> StartCleanup[Start Cache Cleanup]
-    StartCleanup --> ListKeys[List All KV Keys]
-    ListKeys --> IterateKeys[For Each Key]
-    IterateKeys --> GetMeta[Get Metadata]
-    GetMeta --> CheckAge{last_accessed > 2 weeks old?}
-    CheckAge -->|Yes| DeleteR2[Delete All R2 Objects<br/>for this cache key]
-    DeleteR2 --> DeleteKV[Delete KV Entry]
-    DeleteKV --> NextKey{More Keys?}
-    CheckAge -->|No| HasTimestamp{Has last_accessed?}
-    HasTimestamp -->|No| AddTimestamp[Add Timestamp<br/>for Grace Period]
-    HasTimestamp -->|Yes| NextKey
-    AddTimestamp --> NextKey
-    NextKey -->|Yes| IterateKeys
-    NextKey -->|No| CleanupEnd([Cleanup Complete<br/>Log Statistics])
-    
+    ServeFirst --> GenerateNewCache[Setup New Cache] 
+    subgraph "`**Background Creation of New Cache**`"
+    GenerateNewCache --> PopulateNewKVCache[Create new entry in KV with relevant metadata]
+    GenerateNewCache --> PopulateR2[Upload images 2-11 from Unsplash API call to R2]
+    end
+
     style CacheHit fill:#90EE90,color:#000000
-    style CacheMiss fill:#FFB6C1
-    style ServeImage fill:#87CEEB
-    style ServeFirst fill:#87CEEB
-    style RefreshCache fill:#DDA0DD
-    style PopulateCache fill:#DDA0DD
-    style CronTrigger fill:#FFD700
-    style StartCleanup fill:#FFD700
+    style CacheMiss fill:#FFB6C1,color:#000000
+    style ServeImage fill:#87CEEB,color:#000000
+    style ServeFirst fill:#87CEEB,color:#000000
+    style RefreshCache fill:#DDA0DD,color:#000000
+    style GenerateNewCache fill:#DDA0DD,color:#000000  
 ```
+
+```mermaid
+%%{ init: { 'flowchart': { 'curve': 'monotoneX' } } }%%
+flowchart LR
+    %% Scheduled Cleanup
+    CronTrigger[Cron Trigger<br/>Daily at 2 AM UTC]
+    CronTrigger --> ListKeys[List All KV Keys & Metadata]
+    ListKeys --> IterateKeys
+    IterateKeys@{ shape: procs, label: "Check Date When Each Key Was Last Used"} -->|Last Used Date <2 Weeks Ago|NoAction
+    IterateKeys@{ shape: procs, label: "Check Date When Each Key Was Last Used"} -->|Last Used Date >2 Weeks Ago|DeleteR2[Delete All R2 Objects<br/>for Cache Key]
+    DeleteR2 --> DeleteKV[Delete KV Entry]
+    DeleteKV --> |Next Key| IterateKeys
+    NoAction -->|Next Key| IterateKeys
+```
+
 
 ## Key Concepts
 

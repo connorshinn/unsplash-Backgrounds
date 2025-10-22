@@ -1,30 +1,32 @@
-# Unsplash Cloudflare Worker
+# Rotating Unsplash Images Cloudflare Worker
+![](/Screenshots.png)
+Image service built on Cloudflare Workers that delivers rotating Unsplash photos. Features include:
 
-Serve random Unsplash images with intelligent caching. Perfect for dynamic backgrounds, hero images, and placeholders.
-
-[  ![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/connorshinn/unsplash-Backgrounds)
-
-# Features
-
-* 🖼️ Rotating images from Unsplash deployed via free Cloudflare worker
-* 🎯 Refine image results by topics, collections, or specific search terms
-* ⚡ Image caching via Cloudflare R2 storage with automatic cache cleanup
+* 🖼️ **Rotating images from Unsplash deployed via free Cloudflare worker**
+* 🎯 **Refine image results by topics, collections, or specific search terms**
+* ⚡ **Image caching via Cloudflare R2 storage with automatic cache cleanup**
+* 🔄 **Cache refresh to keep images fresh**
+* 🔑 **Originally designed to provide dynamic backgrounds for [Tinyauth](https://github.com/steveiliop56/tinyauth), but worker can be deployed on any project**
 
 # Quick Start Guide
 > [!NOTE]
-> Worker requires an active Cloudflare R2 storage plan, please add this to your account prior to deploying. Cloudflare offers a generous free tier (10GB-month/month storage + 1 million requests/month), so no costs will be incurred. 
+> Worker requires an active Cloudflare R2 storage plan, please add this to your account prior to deploying. Cloudflare R2 is technically a pay-as-you-go service, though a generous free tier is offered (10GB-month/month storage + 1 million requests/month). As a result, typical usage of this worker should be well within the free tier limits and not incur any costs.   
 
 ## 1. Deploy Worker to Cloudflare
-### Click the **Deploy to Cloudflare Workers** button above. This will:
+Click the **Deploy to Cloudflare** button below. 
 
-* Fork the repository to your GitHub account
-* Guide you through Cloudflare authentication
-* Automatically create required resources (R2 bucket, KV namespace)
-* Deploy the worker to your Cloudflare account
+[  ![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/connorshinn/unsplash-Backgrounds)
 
-## **2. Add Unsplash API key:**
+This will:
 
-* Obtain a free API key from [Unsplash](https://unsplash.com/developers)
+* **Fork the repository** to your GitHub account
+* Guide you through ***Cloudflare authentication**
+* Automatically **create required resources** (R2 bucket, KV namespace)
+* **Deploy the worker** to your Cloudflare account
+
+## 2. Add Unsplash API key:
+
+* Once the worker is deployed, obtain a free API key from [Unsplash](https://unsplash.com/developers)
    * Sign up or log in
    * Create a new application
    * Copy your **Access Key**
@@ -40,41 +42,28 @@ Serve random Unsplash images with intelligent caching. Perfect for dynamic backg
    * Click **Save**
 
 ## 3. Customize Worker URL
-   * At the top of the Cloudflare worker page, you'll see a URL like `https://tinyauth-backgrounds.<your-account>.workers.dev`. This is your worker's base URL.
-   * You can add query parameters to this URL to refine the image results. For example, `https://tinyauth-backgrounds.<your-account>.workers.dev/?topics=nature` will return images from Unsplash's Nature category.
-   * The full set of parameters is available in the [Usage](#usage) section below, along with several examples.
-   * All parameters are optional, though we recommend adding at least 1 topic, query, or collection to ensure high quality backgrounds. Adding image dimensions is also recommended for best performance
+   * At the top of the Cloudflare worker page, you'll see a URL that looks like this: `https://tinyauth-backgrounds.<your-account>.workers.dev`. 
+    **This is your worker's base URL.**
+   * You can add **query parameters** to the end of your base URL to **refine the image results**. For example, `https://tinyauth-backgrounds.<your-account>.workers.dev/?topics=nature` will return images from Unsplash's Nature category.
+   * The full set of parameters is available in the **[Usage](#usage)** section below, along with several examples.
+   * All parameters are optional, though we recommend adding **at least 1 topic, query, or collection** to ensure high quality backgrounds. Adding **image dimensions is also recommended** for best performance
 
 ## 4. Add Customized Worker URL to Tinyauth
-   * Update the BACKGROUND_IMAGE environment variable in your docker compose file to include your customized worker URL, e.g.:
+   * Once you have identified which parameters you want to use you should have a URL that looks something like this: `https://tinyauth-backgrounds.<your-account>.workers.dev/?topics=nature&w=1920&h=1080`. 
+   * The final step is to **add this URL to your Tinyauth instance**. To update, simply add the BACKGROUND_IMAGE environment variable to your docker compose file to include your customized worker URL, e.g.:
    ```yaml
    BACKGROUND_IMAGE: https://tinyauth-backgrounds.<your-account>.workers.dev/?topics=nature&w=1920&h=1080
    ```
-   * Restart your Tinyauth instance
+   * **Restart** your Tinyauth instance
 
 Enjoy the new dynamic backgrounds! 🎉
 
 # URL Examples and Parameter Details
 
-## Basic URL Examples
-
-```
-# Random image
-https://your-worker.workers.dev/
-
-# Nature images
-https://your-worker.workers.dev/?topics=nature
-
-# Search query
-https://your-worker.workers.dev/?query=mountain
-
-# With dimensions
-https://your-worker.workers.dev/?topics=wallpapers&w=1920&h=1080
-```
-
 ## Available Parameters
+
 > [!TIP]
-> You can include multiple topics, collections, or queries by separating them with a comma, e.g. `&topics=nature,wallpapers`   
+> You can include **multiple topics, collections, or queries by separating them with a comma**, e.g. `&topics=nature,wallpapers`   
 
 | Parameter | Description | Example |
 |----|----|----|
@@ -85,13 +74,13 @@ https://your-worker.workers.dev/?topics=wallpapers&w=1920&h=1080
 | `h` | Height in pixels | `&h=1080` |
 
 > [!IMPORTANT]
-> Due to limiations with the Unsplash API, collections and topics cannot be used with the query parameter
+> Due to limiations with the Unsplash API, **collections and topics cannot be used with the query parameter**
 
-## Supported Topics
+## Available Topics
 > [!NOTE]
-> Unsplash maintains a set of standard topics, which are outlined below. Make sure to pass use the value in the **query parameter** column in your URL. Temporary topics can be accessed by using the topic ID as the query parameter. A full list of available topics can be accessed via the Unsplash API at https://api.unsplash.com/topics?client_id=YOUR_ACCESS_KEY  
+> Unsplash maintains a set of **standard topics**, which are outlined below. To include one or more of these topics in your URL, make sure to pass the value in the **parameter** column in your URL. Temporary topics can be accessed by using the topic ID as the parameter. A full list of available topics is available via the Unsplash API at https://api.unsplash.com/topics?client_id=YOUR_ACCESS_KEY  
 
-|Example Image                                                                                                                                                   |Topic                                                                   |Query Parameter        |Description                                                                                                                                              |Current Image Count|Image Type  |
+|Example Image                                                                                                                                                   |Topic                                                                   |Parameter        |Description                                                                                                                                              |Current Image Count|Image Type  |
 |----------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|------------|
 |![](https://plus.unsplash.com/premium_vector-1760396510901-a63b0d7540b5?ixlib=rb-4.1.0&w=200&h=112.5&fit=crop)                                                  |[3D](https://unsplash.com/t/3d)                                         |3d                     |Vectors that use shading, gradients, and perspective to create a sense of volume and space — adding a lifelike, tactile quality to digital illustrations.|823                |Illustration|
 |![](https://plus.unsplash.com/premium_photo-1760992310063-3270bb5a2dfc?ixlib=rb-4.1.0&w=200&h=112.5&fit=crop)                                                   |[3D Renders](https://unsplash.com/t/3d-renders)                         |3d-renders             |This category showcases digitally rendered creations that blend technology and art, exploring the limitless potential of digital creativity.             |11997              |Photo       |
@@ -116,142 +105,148 @@ https://your-worker.workers.dev/?topics=wallpapers&w=1920&h=1080
 
 # Caching Architecture
 
-## Overview
+## Background Context
 
-The initial iteration of this tool called the Unsplash API directly on every request. However, due to how the API serves images, there was an extended delay between the initial request and when the image was loaded. To address this, we implemented a caching system to serve images from Cloudflare instead. The caching system uses  KV (Key-Value store) for metadata and R2 (object storage) for image files. It implements a smart rotation system that serves different images on each request while maintaining fast response times through pre-caching.
+The initial iteration of this tool called the Unsplash API directly on every request. However, due the underlying functionality of the API, there was an extended delay between the initial request and when the image was loaded. To address this, we implemented a caching system to serve images from Cloudflare instead. The caching system uses a KV (Key-Value store) for metadata and R2 (object storage) for image files. It implements a smart rotation system that serves different images on each request while maintaining fast response times by avoiding API calls for each request.
 
-## Caching Flow Diagram
+## Overview of Caching System
 
+* At a high level, the system cache is made up of two primary components:
+   * **KV Namespace**: Stores cache metadata (references to images in R2 bucket, rotation index, timestamps)
+   * **R2 Bucket**: Stores actual image files
+
+### KV Namespace and Cache Key/Value Generation
+
+* Each **unique combination** of request parameters has its **own key/value pair**.
+* The **first time** a unique set of parameters is called, the worker will identify that a **new cache key** will need to be created. This triggers a query to the Unsplash API to fetch *11 images* - **1 to serve immediately and 10 to cache for future requests**. As a result, **the first request for a unique set of parameters will take longer to serve** as the cache is not yet available 
+* Prior to creating a cache key, the parameters are **standardized to avoid potential duplicates**. Specifically, parameters are sorted alphabetically (as are values within each parameter). 
+
+**Examples of Keys Used in KV Namespace**
+|Original URL Parameters                                                                                                                                         |Key Used in KV Namespace                                                |
+|----------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------|
+|?topics=wallpapers&w=1920&h=1080                                                                                                                                |height=1080&topics=wallpapers&width=1920                                |
+|?w=1920&h=1080&topics=wallpapers                                                                                                                                |height=1080&topics=wallpapers&width=1920                                |
+|?topics=nature,animals&w=3840                                                                                                                                   |topics=animals,nature&w=3840                                            |
+
+> [!NOTE]
+> The first two sets of URL parameters would ultimately use the same key in the KV namespace, as the standardized key is `height=1080&topics=wallpapers&width=1920` for both. 
+
+<details>
+
+<summary>View Example of Value Stored in KV Namespace</summary>
+
+```json
+{
+  "cache_key": "height=1080&topics=nature&width=1920",
+  "total_images": 10,
+  "next_index": 0,
+  "served_count": 4,
+  "images": [
+    { "r2_key": "height=1080&topics=nature&width=1920_0", "photographer": "Sharad Bhat", "photo_id": "K13ZyQ8aUO0", "content_type": "image/jpeg" },
+    { "r2_key": "height=1080&topics=nature&width=1920_1", "photographer": "Mathew Schwartz", "photo_id": "GjzJFMnJZYg", "content_type": "image/jpeg" },
+    { "r2_key": "height=1080&topics=nature&width=1920_2", "photographer": "Willian Justen de Vasconcellos", "photo_id": "HI5rD5zbU2o", "content_type": "image/jpeg" },
+    { "r2_key": "height=1080&topics=nature&width=1920_3", "photographer": "Yarenci Hdz", "photo_id": "gq7Ag7ANQk8", "content_type": "image/jpeg" },
+    { "r2_key": "height=1080&topics=nature&width=1920_4", "photographer": "magnezis magnestic", "photo_id": "UQSHkNe57EI", "content_type": "image/jpeg" },
+    { "r2_key": "height=1080&topics=nature&width=1920_5", "photographer": "Jovyn Chamb", "photo_id": "iWMfiInivp4", "content_type": "image/jpeg" },
+    { "r2_key": "height=1080&topics=nature&width=1920_6", "photographer": "Leo_Visions", "photo_id": "nzdvmBa8lb0", "content_type": "image/jpeg" },
+    { "r2_key": "height=1080&topics=nature&width=1920_7", "photographer": "Sabrina Brunton", "photo_id": "vdweI3dPVnI", "content_type": "image/jpeg" },
+    { "r2_key": "height=1080&topics=nature&width=1920_8", "photographer": "Irina Iriser", "photo_id": "DuObvMLmc8M", "content_type": "image/jpeg" },
+    { "r2_key": "height=1080&topics=nature&width=1920_9", "photographer": "Colin Watts", "photo_id": "1-p_2jicsVU", "content_type": "image/jpeg" }
+  ],
+  "last_accessed": 1761073594497
+}
+```
+</details>
+
+### R2 Storage and Image Rotation
+
+* Each unique key in the KV namespace has a corresponding set of **10 images stored in the R2 bucket**. 
+
+* Images are named based on the **cache key and their index** in the rotation. For example, an image with the cache key `height=1080&topics=wallpapers&width=1920` and an index of 0 would be named `height=1080&topics=wallpapers&width=1920_0`.
+
+* When a call is made using a set of parameters with an existing cache, the system will read the `next_index` from the KV metadata and serve the **next image in the rotation**. The `next_index` is tracked in the KV metadata and **incremented after each serve** (wrapping back to 0 after 9). This ensures a **new image is served on each request** without the need to query the Unsplash API each time. 
+
+* So, for example, the second time you call `https://tinyauth-backgrounds.<your-account>.workers.dev/?topics=wallpapers&w=1920&h=1080`, it will serve `height=1080&topics=wallpapers&width=1920_1.jpg`, the third time it will serve `height=1080&topics=wallpapers&width=1920_2.jpg`, and so on.
+
+### Cache Refresh Strategy
+* To avoid seeing the same image multiple times, **a refresh is triggered automatically once 8 of the 10 images** from the cache have been served. 
+* This refresh is triggered in the background and **replaces any images that have already been seen** with fresh ones from the Unsplash API via the `/photos/random` endpoint
+* Triggering a refresh after 8 of the 10 images have been seen ensures that there are **always 2 images in the rotation that have not yet been seen**. This ensures that the cache can still be used **even if a request is made while the background refresh is in progress**. 
+
+### Cache Diagram
+A more detailed diagram of the caching system is provided below. 
+
+<details>
+
+<summary>Viewed Detailed Cache Diagram</summary>
 ```mermaid
 flowchart TD
-    Start([HTTP Request]) --> Validate[Validate Bindings & Parameters]
-    Validate --> GenKey[Generate Cache Key from Parameters]
-    GenKey --> CheckKV{Check KV for<br/>Existing Cache}
-    
+    Start[HTTP Request] --> CacheCheck[Check For Existing Cache in KV]
+    CacheCheck --> CacheHit[KV Cache Exists]
+    CacheCheck --> CacheMiss[No KV Cache Exists]
+
     %% Cache Hit Path
-    CheckKV -->|KV Cache Exists| CacheHit[Cache Hit]
-    CacheHit --> GetIndex[Get Current Index from Metadata]
-    GetIndex --> FetchR2[Fetch Next Image from R2]
-    FetchR2 -->|Image Exists in R2| ServeImage[Return Image from R2]
+    CacheHit --> FetchR2[Get Current Index KV Metadata & Fetch Next Image from R2]
+    FetchR2 -->|Image Exists in R2| ServeImage[Serve Image from R2]
     FetchR2 -->|Image Missing in R2| CacheMiss
-    ServeImage --> UpdateMeta[Update KV Metadata to reflect image served - increment index, update last_accessed, increment served_count]
-    UpdateMeta --> CheckRefresh{Check if New Images Are Needed in R2 Storage}
-    CheckRefresh -->|8+ of 10 total cached images served| RefreshCache[Background Process: <br/>Fetch 8 new images from Unsplash, replace 8 oldest images in R2, and update KV metadata]
-    CheckRefresh -->|<7 of 10 total cached images served| NoActionRequired(No Action Required)
+    ServeImage --> UpdateMeta[Update KV Metadata to reflect successful serve]
+    subgraph "`**Background Update of Existing Cache**`"
+    UpdateMeta --> CheckRefresh[Check if New Images Are Needed in R2 Storage]
+    CheckRefresh -->|8+ of 10 total cached images served| RefreshCache[Fetch 8 new images from Unsplash, replace 8 oldest images in R2, and update KV metadata]
+    CheckRefresh -->|<7 of 10 total cached images served| NoActionRequired[No Action Required]
+    end
 
     
     %% Cache Miss Path
-    CheckKV -->|Not Found| CacheMiss[Cache Miss]
     CacheMiss --> FetchUnsplash[Fetch 11 Images from Unsplash API]
-    FetchUnsplash -->|API Error| ErrorResponse([Return Error Response])
+    FetchUnsplash -->|API Error| ErrorResponse[Return Error Response]
     FetchUnsplash -->|API Success| ServeFirst[Serve First Image from Unsplash API Results]
-    ServeFirst --> PopulateCache[Background Process: <br/>Upload images 2-11 from Unsplash API call to R2 and create new entry in KV with relevant metadata]
-    PopulateCache --> End
-    
+    ServeFirst --> GenerateNewCache[Setup New Cache] 
+    subgraph "`**Background Creation of New Cache**`"
+    GenerateNewCache --> PopulateNewKVCache[Create new entry in KV with relevant metadata]
+    GenerateNewCache --> PopulateR2[Upload images 2-11 from Unsplash API call to R2]
+    end
+
     style CacheHit fill:#90EE90,color:#000000
     style CacheMiss fill:#FFB6C1,color:#000000
     style ServeImage fill:#87CEEB,color:#000000
     style ServeFirst fill:#87CEEB,color:#000000
     style RefreshCache fill:#DDA0DD,color:#000000
-    style PopulateCache fill:#DDA0DD,color:#000000
+    style GenerateNewCache fill:#DDA0DD,color:#000000  
+```
+</details>
+
+### Cache Cleanup
+* To avoid unbounded storage, a cron job is setup to run daily at 2:00 AM UTC to clean up old cache entries. 
+* The worker will iterate through each key in the KV namespace and check the `last_accessed` timestamp. Any keys that have not been accessed in more than 2 weeks are deleted from the KV namespace, and their corresponding images are deleted from the R2 bucket. 
+
+<details>
+
+<summary>View Cron Job Workflow</summary>
+```mermaid
+%%{ init: { 'flowchart': { 'curve': 'monotoneX' } } }%%
+flowchart LR
+    %% Scheduled Cleanup
+    CronTrigger[Cron Trigger<br/>Daily at 2 AM UTC]
+    CronTrigger --> ListKeys[List All KV Keys & Metadata]
+    ListKeys --> IterateKeys
+    IterateKeys@{ shape: procs, label: "Check Date When Each Key Was Last Used"} -->|Last Used Date <2 Weeks Ago|NoAction
+    IterateKeys@{ shape: procs, label: "Check Date When Each Key Was Last Used"} -->|Last Used Date >2 Weeks Ago|DeleteR2[Delete All R2 Objects<br/>for Cache Key]
+    DeleteR2 --> DeleteKV[Delete KV Entry]
+    DeleteKV --> |Next Key| IterateKeys
+    NoAction -->|Next Key| IterateKeys
+
+    style IterateKeys fill:#FFE66D,color:#000000
+    style DeleteR2 fill:#FFB6C1,color:#000000
+    style DeleteKV fill:#FFB6C1,color:#000000
 ```
 
-**Caching:**
-
-* Stores 10 images per parameter set in R2 + KV
-* Rotates through images on each request
-* Refreshes 8 oldest images after every 8 requests
-* No client-side caching (fresh images on every page refresh)
-
-**First Request:**
-
-
-1. Cache miss → 302 redirect to Unsplash
-2. Background: Fetch and cache 10 images
-
-**Subsequent Requests:**
-
-
-1. Cache hit → Serve next image in rotation
-2. Every 8 requests → Refresh 8 oldest images
-
-## Viewing Logs
-
-To view your worker's logs:
-
-
-1. Go to [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. Navigate to **Workers & Pages**
-3. Click on your **unsplash-worker**
-4. Click **Logs** tab
-5. Click **Begin log stream**
-
-You'll see real-time logs of requests, cache hits/misses, and any errors.
-
-## Troubleshooting
-
-**Worker returns 502 or errors:**
-
-
-1. Check that your Unsplash API key is set correctly:
-   * Cloudflare Dashboard → Workers & Pages → unsplash-worker → Settings → Variables
-   * Verify `UNSPLASH_ACCESS_KEY` is present and encrypted
-2. Verify your API key is valid at [unsplash.com/oauth/applications](https://unsplash.com/oauth/applications)
-3. Check the logs (see "Viewing Logs" section above)
-
-**Images not rotating:**
-
-* Clear browser cache or use Incognito mode
-* Make more requests (cycles through 10 images)
-
-**Topics not working:**
-
-* Use supported topic slugs (see list above)
-* Check the logs for error messages
-
-## Cost
-
-Cloudflare's free tier is generous and covers typical usage:
-
-| Service | Free Tier |
-|----|----|
-| Workers | 100,000 requests/day |
-| R2 Storage | 10 GB |
-| R2 Operations | 10M reads, 1M writes/month |
-| KV Operations | 100,000 reads/day, 1,000 writes/day |
-
-**Typical usage: $0/month** ✅
-
-## Advanced
-
-**Custom domain:**
-
-
-1. Go to Cloudflare Dashboard → Workers & Pages → unsplash-worker
-2. Click **Triggers** tab
-3. Click **Add Custom Domain**
-4. Enter your domain (must be on Cloudflare)
-5. Click **Add Custom Domain**
-
-**Rate limits:**
-
-* Demo API: 50 requests/hour
-* Production API: 5,000 requests/hour (apply at [unsplash.com/oauth/applications](https://unsplash.com/oauth/applications))
-
-**Viewing cached data:**
-
-
-1. Go to Cloudflare Dashboard
-2. For R2 images: **R2** → **unsplash-cache** bucket
-3. For KV metadata: **Workers & Pages** → **KV** → **UNSPLASH_CACHE_METADATA**
+</details>
 
 ## Attribution
 
-This worker uses the [Unsplash API](https://unsplash.com/developers). Please:
-
-* Provide photographer attribution (see `X-Unsplash-Photographer` header)
-* Link back to Unsplash when possible (see `X-Image-Source-URL` header)
-* Follow [Unsplash API Guidelines](https://help.unsplash.com/en/articles/2511245-unsplash-api-guidelines)
+* This worker uses the [Unsplash API](https://unsplash.com/developers). Photographer attribution is automatically passed as a header with each request to comply with [Unsplash API Guidelines](https://help.unsplash.com/en/articles/2511245-unsplash-api-guidelines) (see `X-Unsplash-Photographer` header). 
+* Many thanks to [Tinyauth](https://github.com/steveiliop56/tinyauth) for the inspiration and use case!
 
 ## License
 

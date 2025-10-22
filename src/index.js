@@ -158,7 +158,7 @@ async function handleCacheHit(env, ctx, metadata, params) {
     console.log('File Dimensions:', dimensions.width && dimensions.height ? `${dimensions.width}x${dimensions.height}` : 'auto');
     console.log('Source URL:', `https://unsplash.com/photos/${imageInfo.photo_id}`);
     console.log('File Size:', fileSize > 1024 * 1024 ? `${fileSizeMB} MB` : `${fileSizeKB} KB`, `(${fileSize} bytes)`);
-    console.log('Unsplash Category:', category || 'random');
+    console.log('Unsplash Category:', category || '`random`');
     console.log('Photographer:', imageInfo.photographer);
     console.log('================');
 
