@@ -20,7 +20,7 @@ Click the **Deploy to Cloudflare** button below.
 This will:
 
 * **Fork the repository** to your GitHub account
-* Guide you through ***Cloudflare authentication**
+* Guide you through **Cloudflare authentication**
 * Automatically **create required resources** (R2 bucket, KV namespace)
 * **Deploy the worker** to your Cloudflare account
 
