@@ -176,6 +176,10 @@ The initial iteration of this tool called the Unsplash API directly on every req
 ### Cache Diagram
 A more detailed diagram of the caching system is provided below. 
 ```mermaid
+---
+config:
+  markdownAutoWrap: false
+---
 flowchart TD;
     Start[HTTP Request] --> CacheCheck[Check For Existing Cache in KV];
     CacheCheck --> CacheHit[KV Cache Exists];
@@ -184,9 +188,10 @@ flowchart TD;
     CacheHit --> FetchR2[Get Current Index KV Metadata & Fetch Next Image from R2];
     FetchR2 -->|Image Exists in R2| ServeImage[Serve Image from R2];
     FetchR2 -->|Image Missing in R2| CacheMiss;
-    ServeImage --> UpdateMeta[Update KV Metadata to reflect successful serve];
-    subgraph "**Background Update of Existing Cache**";
-    UpdateMeta --> CheckRefresh[Check if New Images Are Needed in R2 Storage];
+    ServeImage --> existing;
+    subgraph existing ["`**Update Existing Cache**`"];
+    direction TB;
+    UpdateMeta[Update KV Metadata to reflect successful serve] --> CheckRefresh[Check if New Images Are Needed in R2 Storage];
     CheckRefresh -->|8+ of 10 total cached images served| RefreshCache[Fetch 8 new images from Unsplash, replace 8 oldest images in R2, and update KV metadata];
     CheckRefresh -->|<7 of 10 total cached images served| NoActionRequired[No Action Required];
     end;
@@ -194,10 +199,11 @@ flowchart TD;
     CacheMiss --> FetchUnsplash[Fetch 11 Images from Unsplash API];
     FetchUnsplash -->|API Error| ErrorResponse[Return Error Response];
     FetchUnsplash -->|API Success| ServeFirst[Serve First Image from Unsplash API Results];
-    ServeFirst --> GenerateNewCache[Setup New Cache] ;
-    subgraph "**Background Creation of New Cache**";
-    GenerateNewCache --> PopulateNewKVCache[Create new entry in KV with relevant metadata];
-    GenerateNewCache --> PopulateR2[Upload images 2-11 from Unsplash API call to R2];
+    ServeFirst --> new;
+    subgraph new["`**Create New Cache**`"];
+    direction TB;
+    GenerateNewCache[Setup New Cache] --> PopulateNewKVCache[Create new entry in KV with relevant metadata];
+    GenerateNewCache[Setup New Cache] --> PopulateR2[Upload images 2-11 from Unsplash API call to R2];
     end;
     style CacheHit fill:#90EE90,color:#000000;
     style CacheMiss fill:#FFB6C1,color:#000000;
@@ -212,6 +218,10 @@ flowchart TD;
 * To avoid unbounded storage, a cron job is setup to run daily at 2:00 AM UTC to clean up old cache entries. 
 * The worker will iterate through each key in the KV namespace and check the `last_accessed` timestamp. Any keys that have not been accessed in more than 2 weeks are deleted from the KV namespace, and their corresponding images are deleted from the R2 bucket. 
 ```mermaid
+---
+config:
+  markdownAutoWrap: false
+---
 flowchart LR;
     %% Scheduled Cleanup;
     CronTrigger[Cron Trigger<br/>Daily at 2 AM UTC];
