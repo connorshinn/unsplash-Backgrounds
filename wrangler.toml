@@ -10,12 +10,13 @@ bucket_name = "unsplash-cache"
 # KV namespace binding for storing cache metadata
 [[kv_namespaces]]
 binding = "UNSPLASH_CACHE_METADATA"
-id = "86c621d1e7e445df99cae2dfe161d777"  # Replace with actual namespace ID after creation
+id = "86c621d1e7e445df99cae2dfe161d777" 
 
 # Cron trigger for automatic cache cleanup
 # Runs daily at 2:00 AM UTC
 [triggers]
 crons = ["0 2 * * *"]
 
+# Enable Cloudflare worker logs
 [observability.logs]
 enabled = true
