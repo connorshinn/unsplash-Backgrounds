@@ -46,6 +46,7 @@ head_sampling_rate = 1
 # Fully isolated: own Worker, bucket, KV namespace and coordinator state.
 [env.staging]
 name = "tinyauth-backgrounds-v2-staging"
+routes = [] # never inherit the production custom domain
 workers_dev = true
 preview_urls = false
 
