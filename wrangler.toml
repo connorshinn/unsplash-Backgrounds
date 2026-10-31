@@ -1,22 +1,81 @@
-name = "tinyauth-backgrounds"
+# Installation configuration for tinyauth-backgrounds-v2 (production, R2-backed).
+# Reusable defaults live in src/config.js; override numeric tunables via [vars].
+name = "tinyauth-backgrounds-v2"
 main = "src/index.js"
 compatibility_date = "2025-08-15"
+workers_dev = true
+preview_urls = true
 
-# R2 bucket binding for storing image data
+routes = [{ pattern = "unsplash.connorshinn.com", custom_domain = true }]
+
+# Unsplash applications (Access Keys are encrypted secrets, never in this file):
+#   wrangler secret put UNSPLASH_ACCESS_KEY            (primary)
+#   wrangler secret put UNSPLASH_SECONDARY_ACCESS_KEY  (secondary)
+[vars]
+UNSPLASH_PRIMARY_APP_ID = "813645"
+UNSPLASH_SECONDARY_APP_ID = "1116485"
+PILOT_HOURLY_ALLOWANCE = "5"
+PILOT_PROD_RESERVE = "15"
+
 [[r2_buckets]]
 binding = "UNSPLASH_CACHE"
 bucket_name = "unsplash-cache"
 
-# KV namespace binding for storing cache metadata
 [[kv_namespaces]]
 binding = "UNSPLASH_CACHE_METADATA"
-id = "86c621d1e7e445df99cae2dfe161d777" 
+id = "1edbf729f7e6429db4997f4d80c88166"
 
-# Cron trigger for automatic cache cleanup
-# Runs daily at 2:00 AM UTC
+[[durable_objects.bindings]]
+name = "COORDINATOR"
+class_name = "Coordinator"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Coordinator"]
+
+# Every 10 minutes: drain tracking events, resume refreshes, GC retired objects.
+# The 02:00-02:09 UTC run additionally retires idle pools and cleans legacy KV
+# entries. (A single cron keeps the account within the Workers Free 5-cron limit.)
 [triggers]
-crons = ["0 2 * * *"]
+crons = ["*/10 * * * *"]
 
-# Enable Cloudflare worker logs
-[observability.logs]
+[observability]
 enabled = true
+head_sampling_rate = 1
+
+# ---------------------------------------------------------------- staging ---
+# Fully isolated: own Worker, bucket, KV namespace and coordinator state.
+[env.staging]
+name = "tinyauth-backgrounds-v2-staging"
+routes = [] # never inherit the production custom domain
+workers_dev = true
+preview_urls = false
+
+[env.staging.vars]
+UNSPLASH_PRIMARY_APP_ID = "813645"
+UNSPLASH_SECONDARY_APP_ID = "1116485"
+PILOT_HOURLY_ALLOWANCE = "5"
+PILOT_PROD_RESERVE = "15"
+
+[[env.staging.r2_buckets]]
+binding = "UNSPLASH_CACHE"
+bucket_name = "unsplash-cache-staging"
+
+[[env.staging.kv_namespaces]]
+binding = "UNSPLASH_CACHE_METADATA"
+id = "8aa142b89bc04d2daa73331045ce2afe"
+
+[[env.staging.durable_objects.bindings]]
+name = "COORDINATOR"
+class_name = "Coordinator"
+
+[[env.staging.migrations]]
+tag = "v1"
+new_sqlite_classes = ["Coordinator"]
+
+[env.staging.triggers]
+crons = [] # staging maintenance is driven manually; Workers Free allows 5 crons per account
+
+[env.staging.observability]
+enabled = true
+head_sampling_rate = 1
