@@ -1,6 +1,21 @@
+# Installation configuration for tinyauth-backgrounds-v2 (production, R2-backed).
+# Reusable defaults live in src/config.js; override numeric tunables via [vars].
 name = "tinyauth-backgrounds-v2"
 main = "src/index.js"
 compatibility_date = "2025-08-15"
+workers_dev = true
+preview_urls = true
+
+routes = [{ pattern = "unsplash.connorshinn.com", custom_domain = true }]
+
+# Unsplash applications (Access Keys are encrypted secrets, never in this file):
+#   wrangler secret put UNSPLASH_ACCESS_KEY            (primary)
+#   wrangler secret put UNSPLASH_SECONDARY_ACCESS_KEY  (secondary)
+[vars]
+UNSPLASH_PRIMARY_APP_ID = "813645"
+UNSPLASH_SECONDARY_APP_ID = "1116485"
+PILOT_HOURLY_ALLOWANCE = "5"
+PILOT_PROD_RESERVE = "15"
 
 [[r2_buckets]]
 binding = "UNSPLASH_CACHE"
@@ -10,8 +25,55 @@ bucket_name = "unsplash-cache"
 binding = "UNSPLASH_CACHE_METADATA"
 id = "1edbf729f7e6429db4997f4d80c88166"
 
-[triggers]
-crons = ["0 2 * * *"]
+[[durable_objects.bindings]]
+name = "COORDINATOR"
+class_name = "Coordinator"
 
-[observability.logs]
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Coordinator"]
+
+# Every 10 minutes: drain tracking events, resume refreshes, GC retired objects.
+# Daily 02:00 UTC: also retire idle pools and clean legacy KV entries.
+[triggers]
+crons = ["*/10 * * * *", "0 2 * * *"]
+
+[observability]
 enabled = true
+head_sampling_rate = 1
+
+# ---------------------------------------------------------------- staging ---
+# Fully isolated: own Worker, bucket, KV namespace and coordinator state.
+[env.staging]
+name = "tinyauth-backgrounds-v2-staging"
+workers_dev = true
+preview_urls = false
+
+[env.staging.vars]
+UNSPLASH_PRIMARY_APP_ID = "813645"
+UNSPLASH_SECONDARY_APP_ID = "1116485"
+PILOT_HOURLY_ALLOWANCE = "5"
+PILOT_PROD_RESERVE = "15"
+
+[[env.staging.r2_buckets]]
+binding = "UNSPLASH_CACHE"
+bucket_name = "unsplash-cache-staging"
+
+[[env.staging.kv_namespaces]]
+binding = "UNSPLASH_CACHE_METADATA"
+id = "8aa142b89bc04d2daa73331045ce2afe"
+
+[[env.staging.durable_objects.bindings]]
+name = "COORDINATOR"
+class_name = "Coordinator"
+
+[[env.staging.migrations]]
+tag = "v1"
+new_sqlite_classes = ["Coordinator"]
+
+[env.staging.triggers]
+crons = ["*/10 * * * *", "0 2 * * *"]
+
+[env.staging.observability]
+enabled = true
+head_sampling_rate = 1
