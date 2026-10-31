@@ -322,3 +322,15 @@ test('status endpoint needs ADMIN_TOKEN and exposes quota without secrets', asyn
 test('R2 object key layout is scoped under v2/r/', () => {
   assert.ok(objectKey('r2_a', 'p').startsWith('v2/r/'));
 });
+
+test('rotating an Access Key clears its saved invalid state', async () => {
+  const w = await makeWorld();
+  w.up.rules.KEY1 = { status: 401 };
+  await w.req(PROD);
+  assert.ok(w.core.quota.apps['813645'].invalidUntil > w.t.now);
+  const { CoordinatorCore } = await import('../src/core.js');
+  const same = await new CoordinatorCore({ store: w.store, env: w.env, blobs: w.core.blobs, snapshots: w.core.snapshots, fetchFn: w.up.fetch, now: () => w.t.now }).init();
+  assert.ok(same.quota.apps['813645'].invalidUntil > w.t.now, 'same key keeps its state across restarts');
+  const rotated = await new CoordinatorCore({ store: w.store, env: { ...w.env, UNSPLASH_ACCESS_KEY: 'NEWKEY' }, blobs: w.core.blobs, snapshots: w.core.snapshots, fetchFn: w.up.fetch, now: () => w.t.now }).init();
+  assert.equal(rotated.quota.apps['813645'].invalidUntil, 0);
+});

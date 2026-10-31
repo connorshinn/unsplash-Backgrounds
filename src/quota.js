@@ -141,10 +141,10 @@ export class QuotaState {
     if (status === 429) return quotaHit();
     if (status === 403) {
       if (/rate limit/i.test(outcome.body || '') || outcome.remaining === 0) return quotaHit();
-      a.invalidUntil = now + HOUR;
+      a.invalidUntil = now + 15 * 60000;
       return { class: 'invalid' };
     }
-    if (status === 401) { a.invalidUntil = now + 6 * HOUR; return { class: 'invalid' }; }
+    if (status === 401) { a.invalidUntil = now + 30 * 60000; return { class: 'invalid' }; }
     if (hasRemaining) a.remaining = outcome.remaining; else decrement();
     if (status >= 500) return { class: 'transient' };
     if (status >= 200 && status < 300) { a.cooldownStep = 0; a.invalidUntil = 0; return { class: 'ok' }; }

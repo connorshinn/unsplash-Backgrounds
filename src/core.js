@@ -17,8 +17,18 @@ export class CoordinatorCore {
   }
 
   async init() {
-    const saved = await this.store.get('quota');
+    const saved = (await this.store.get('quota')) || { apps: {} };
+    // Key rotation heals automatically: when an Access Key's fingerprint changes, its
+    // saved health/cooldown state (e.g. "invalid credentials") is discarded.
+    const fingerprints = {};
+    for (const app of this.apps) {
+      const data = new TextEncoder().encode(this.env[app.keyEnv]);
+      const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', data));
+      fingerprints[app.id] = [...digest.slice(0, 6)].map((b) => b.toString(16).padStart(2, '0')).join('');
+      if (saved.apps?.[app.id] && saved.apps[app.id].fp !== fingerprints[app.id]) delete saved.apps[app.id];
+    }
     this.quota = new QuotaState(this.apps, this.cfg, saved);
+    for (const id of Object.keys(fingerprints)) this.quota.apps[id].fp = fingerprints[id];
     this.gateway = new UnsplashGateway({
       apps: this.apps, env: this.env, cfg: this.cfg, quota: this.quota, now: this.now,
       fetchFn: this.fetchFn, apiBase: this.apiBase,
