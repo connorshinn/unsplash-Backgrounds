@@ -34,9 +34,10 @@ tag = "v1"
 new_sqlite_classes = ["Coordinator"]
 
 # Every 10 minutes: drain tracking events, resume refreshes, GC retired objects.
-# Daily 02:00 UTC: also retire idle pools and clean legacy KV entries.
+# The 02:00-02:09 UTC run additionally retires idle pools and cleans legacy KV
+# entries. (A single cron keeps the account within the Workers Free 5-cron limit.)
 [triggers]
-crons = ["*/10 * * * *", "0 2 * * *"]
+crons = ["*/10 * * * *"]
 
 [observability]
 enabled = true
@@ -73,7 +74,7 @@ tag = "v1"
 new_sqlite_classes = ["Coordinator"]
 
 [env.staging.triggers]
-crons = ["*/10 * * * *", "0 2 * * *"]
+crons = [] # staging maintenance is driven manually; Workers Free allows 5 crons per account
 
 [env.staging.observability]
 enabled = true

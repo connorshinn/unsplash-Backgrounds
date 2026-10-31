@@ -237,7 +237,8 @@ export async function cleanupLegacy(env, cfg, budget = 200) {
 
 export async function handleScheduled(event, env, ctx) {
   const cfg = loadConfig(env);
-  const full = event.cron === '0 2 * * *';
+  const at = new Date(event.scheduledTime);
+  const full = at.getUTCHours() === 2 && at.getUTCMinutes() < 10; // daily deep maintenance window
   console.log('SCHEDULED', event.cron, new Date(event.scheduledTime).toISOString());
   const work = (async () => {
     const stub = coordinatorStub(env);

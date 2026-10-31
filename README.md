@@ -62,7 +62,7 @@ Installation values are in `wrangler.toml`; reusable defaults and every tunable 
 | KV `UNSPLASH_CACHE_METADATA_V2` | `UNSPLASH_CACHE_METADATA` (pool snapshots `v2:snap:*`; legacy entries age out) |
 | Durable Object | `COORDINATOR` (`Coordinator`, SQLite) |
 | Secrets | `UNSPLASH_ACCESS_KEY`, `UNSPLASH_SECONDARY_ACCESS_KEY`, optional `ADMIN_TOKEN` |
-| Cron | `*/10 * * * *` (drain events, resume refreshes, GC) and `0 2 * * *` (also retire pools idle > 14 days, clean legacy KV entries) |
+| Cron | `*/10 * * * *` (drain events, resume refreshes, GC); the 02:00–02:09 UTC run also retires pools idle > 14 days and cleans legacy KV entries. One cron because the account is on Workers Free (5 crons/account). |
 
 `GET /__status` with `Authorization: Bearer $ADMIN_TOKEN` returns quota per application, pending events, pool/GC counters and effective tunables (404 without the secret). Metrics are per coordinator lifetime except quota/pool state.
 
